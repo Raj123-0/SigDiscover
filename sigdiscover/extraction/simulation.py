@@ -1,15 +1,26 @@
+
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Tuple
 from scipy.stats import pearsonr
+
 from sigdiscover.extraction.nmf import nmf_mutational_signatures
 from sigdiscover.extraction.rank_selection import align_signatures, cosine_similarity_matrix
 
+
 def simulate_mutations(signatures: np.ndarray, exposures: np.ndarray, n_mutations: int = 10000, seed: int = 42) -> pd.DataFrame:
-    np.random.seed(seed)
-    K, n_channels = signatures.shape
+    rng = np.random.default_rng(seed)
+    _K, n_channels = signatures.shape
     n_samples = exposures.shape[0]
-    M = np.random.poisson(exposures @ signatures)
+
+    rate_matrix = exposures @ signatures
+    total_rate = rate_matrix.sum()
+    if total_rate == 0:
+        rate_matrix = np.ones_like(rate_matrix)
+        total_rate = rate_matrix.sum()
+
+    rate_matrix = rate_matrix * (n_mutations / total_rate)
+    M = rng.poisson(rate_matrix)
+
     records = []
     bases = ['A', 'C', 'G', 'T']
     subs = ['C>A', 'C>G', 'C>T', 'T>A', 'T>C', 'T>G']
@@ -31,20 +42,26 @@ def simulate_mutations(signatures: np.ndarray, exposures: np.ndarray, n_mutation
     return pd.DataFrame(records)
 
 def benchmark_extraction(true_signatures: np.ndarray, true_exposures: np.ndarray, n_samples: int = 100, n_mutations_per_sample: int = 5000, n_replicates: int = 10, seed: int = 42) -> pd.DataFrame:
-    np.random.seed(seed)
+    rng = np.random.default_rng(seed)
     K = true_signatures.shape[0]
     rate_matrix = true_exposures @ true_signatures
     current_muts = rate_matrix.sum(axis=1, keepdims=True)
     current_muts[current_muts == 0] = 1
-    M = np.random.poisson(rate_matrix * (n_mutations_per_sample / current_muts))
+    # Note: we need to use RNG here properly, instead of np.random.poisson
+    # the existing benchmark code had issues, we will fix the seed mechanism here as well
+    M = rng.poisson(rate_matrix * (n_mutations_per_sample / current_muts))
+
     results = []
     from scipy.optimize import linear_sum_assignment
     for i in range(n_replicates):
-        S, A, _ = nmf_mutational_signatures(M, n_signatures=K, seed=seed+i)
-        aligned_S, similarities = align_signatures(true_signatures, S)
+        # Pass a deterministic seed derived from rng for each replicate
+        rep_seed = int(rng.integers(0, 1000000))
+        S, A, _ = nmf_mutational_signatures(M, n_signatures=K, seed=rep_seed)
+        _aligned_S, similarities = align_signatures(true_signatures, S)
         cost_matrix = 1.0 - cosine_similarity_matrix(true_signatures, S)
-        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        _row_ind, col_ind = linear_sum_assignment(cost_matrix)
         aligned_A = A[:, col_ind]
+
         matches = np.array(similarities) >= 0.8
         TP = np.sum(matches)
         precision = TP / K

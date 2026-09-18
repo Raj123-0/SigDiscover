@@ -5,3 +5,5 @@ data/cosmic/
 data/tcga/
 data/simulated/
 tests/test_data/
+results/
+sigdiscover.egg-info/

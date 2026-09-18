@@ -26,6 +26,9 @@ pip install -r requirements.txt
 This example runs the full pipeline on synthetically generated data:
 
 ```bash
+# You must install the sigprofiler extra to extract contexts
+pip install -e ".[sigprofiler]"
+
 # Generate synthetic mutations, build matrix, extract signatures, and assign to COSMIC
 python -m sigdiscover run --synthetic --output results/synthetic_run/
 
