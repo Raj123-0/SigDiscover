@@ -1,11 +1,10 @@
 import multiprocessing as mp
-from collections.abc import Callable, Iterable
-from typing import TypeVar
+from typing import Callable, Iterable, List, TypeVar
 
 T = TypeVar('T')
 R = TypeVar('R')
 
-def run_parallel(func: Callable[[T], R], items: Iterable[T], n_jobs: int = -1) -> list[R]:
+def run_parallel(func: Callable[[T], R], items: Iterable[T], n_jobs: int = -1) -> List[R]:
     if n_jobs == -1:
         n_jobs = mp.cpu_count()
     elif n_jobs < 1:

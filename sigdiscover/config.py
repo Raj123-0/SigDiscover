@@ -1,8 +1,7 @@
 from dataclasses import dataclass, field
+from typing import List, Union
 from pathlib import Path
-
 from sigdiscover.utils.io import load_yaml
-
 
 @dataclass
 class ProjectConfig:
@@ -11,17 +10,17 @@ class ProjectConfig:
 
 @dataclass
 class DataConfig:
-    cosmic_version: str = "3.4"
+    cosmic_version: Union[str, float] = 3.4
     genome_build: str = "GRCh37"
-    mutation_types: list[str] = field(default_factory=lambda: ["SBS96", "DBS78", "ID83"])
+    mutation_types: List[str] = field(default_factory=lambda: ["SBS96", "DBS78", "ID83"])
 
 @dataclass
 class ExtractionConfig:
     min_signatures: int = 1
     max_signatures: int = 10
-    n_replicates: int = 30
-    n_iterations: int = 2000
-    tolerance: float = 1.0e-6
+    n_replicates: int = 100
+    n_iterations: int = 1000000
+    tolerance: float = 1.0e-15
     init_method: str = "random"
 
 @dataclass
@@ -34,7 +33,7 @@ class BenchmarkConfig:
     synthetic_n_samples: int = 100
     synthetic_n_mutations: int = 5000
     synthetic_n_replicates: int = 10
-    noise_levels: list[float] = field(default_factory=lambda: [0.1, 0.2, 0.3])
+    noise_levels: List[float] = field(default_factory=lambda: [0.1, 0.2, 0.3])
 
 @dataclass
 class VisualizationConfig:
@@ -51,48 +50,13 @@ class Config:
     visualization: VisualizationConfig = field(default_factory=VisualizationConfig)
 
     @classmethod
-    def from_yaml(cls, path: str | Path) -> "Config":
+    def from_yaml(cls, path: Union[str, Path]) -> "Config":
         raw_config = load_yaml(path)
-        if raw_config is None:
-            raw_config = {}
-
-        # Known sections
-        known_sections = {"project", "data", "extraction", "assignment", "benchmark", "visualization"}
-        unknown_sections = set(raw_config.keys()) - known_sections
-        if unknown_sections:
-            raise ValueError(f"Unknown config sections: {unknown_sections}")
-
-        # Helper to get dict and treat None as empty
-        def get_section(name):
-            section = raw_config.get(name, {})
-            return section if section is not None else {}
-
-        project_raw = get_section("project")
-        data_raw = get_section("data")
-        extraction_raw = get_section("extraction")
-        assignment_raw = get_section("assignment")
-        benchmark_raw = get_section("benchmark")
-        visualization_raw = get_section("visualization")
-
-        # Check unknown keys per section
-        def check_keys(raw_dict, dc):
-            valid_keys = {f.name for f in dc.__dataclass_fields__.values()}
-            unknown_keys = set(raw_dict.keys()) - valid_keys
-            if unknown_keys:
-                raise ValueError(f"Unknown keys in {dc.__name__}: {unknown_keys}")
-
-        check_keys(project_raw, ProjectConfig)
-        check_keys(data_raw, DataConfig)
-        check_keys(extraction_raw, ExtractionConfig)
-        check_keys(assignment_raw, AssignmentConfig)
-        check_keys(benchmark_raw, BenchmarkConfig)
-        check_keys(visualization_raw, VisualizationConfig)
-
         return cls(
-            project=ProjectConfig(**project_raw),
-            data=DataConfig(**data_raw),
-            extraction=ExtractionConfig(**extraction_raw),
-            assignment=AssignmentConfig(**assignment_raw),
-            benchmark=BenchmarkConfig(**benchmark_raw),
-            visualization=VisualizationConfig(**visualization_raw)
+            project=ProjectConfig(**raw_config.get("project", {})),
+            data=DataConfig(**raw_config.get("data", {})),
+            extraction=ExtractionConfig(**raw_config.get("extraction", {})),
+            assignment=AssignmentConfig(**raw_config.get("assignment", {})),
+            benchmark=BenchmarkConfig(**raw_config.get("benchmark", {})),
+            visualization=VisualizationConfig(**raw_config.get("visualization", {}))
         )

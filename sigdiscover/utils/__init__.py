@@ -1,5 +1,5 @@
-from sigdiscover.utils.io import ensure_dir, load_matrix, load_yaml, save_matrix, save_yaml
-from sigdiscover.utils.logging import logger, setup_logger
+from sigdiscover.utils.io import ensure_dir, load_yaml, save_yaml, save_matrix, load_matrix
+from sigdiscover.utils.logging import setup_logger, logger
 from sigdiscover.utils.parallelism import run_parallel
 
-__all__ = ["ensure_dir", "load_matrix", "load_yaml", "logger", "run_parallel", "save_matrix", "save_yaml", "setup_logger"]
+__all__ = ["ensure_dir", "load_yaml", "save_yaml", "save_matrix", "load_matrix", "setup_logger", "logger", "run_parallel"]
