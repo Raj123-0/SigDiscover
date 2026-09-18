@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+results/
+data/cosmic/
+data/tcga/
+data/simulated/
+tests/test_data/

@@ -1,0 +1,6 @@
+Hugo_Symbol	Chromosome	Start_Position	End_Position	Variant_Type	Reference_Allele	Tumor_Seq_Allele2	Tumor_Sample_Barcode
+GENE1	1	100	100	SNP	C	A	S1
+GENE2	1	200	200	SNP	C	G	S1
+GENE3	2	300	300	SNP	T	A	S2
+GENE4	3	400	400	SNP	G	T	S2
+GENE5	4	500	500	SNP	A	C	S3
