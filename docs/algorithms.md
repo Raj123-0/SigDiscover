@@ -19,7 +19,3 @@ We select the $k$ that maximizes the trade-off score: $\text{stability} - \text{
 ## COSMIC Assignment
 
 Discovered signatures are matched to COSMIC reference signatures using cosine similarity. A match is assigned if the similarity is $\ge 0.8$; otherwise, it is labeled "Novel".
-
-
-## Stability Measure
-In rank selection, stability precisely measures the mean pairwise post-Hungarian cosine similarity across random-init replicates, representing initialization stability (not bootstrap stability).

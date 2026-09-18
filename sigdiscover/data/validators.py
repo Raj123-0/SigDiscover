@@ -1,8 +1,9 @@
-
+import numpy as np
 import pandas as pd
+from typing import Dict
+from sigdiscover.utils.logging import logger
 
-
-def validate_matrix(matrix: pd.DataFrame, mutation_type: str = "SBS96") -> dict:
+def validate_matrix(matrix: pd.DataFrame, mutation_type: str = "SBS96") -> Dict:
     expected_channels = {"SBS96": 96, "DBS78": 78, "ID83": 83}
     report = {
         "is_valid": True, "n_samples": matrix.shape[0], "n_channels": matrix.shape[1],

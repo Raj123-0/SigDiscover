@@ -1,21 +1,19 @@
 import gzip
-import hashlib
 import json
 import os
 import shutil
-import time
-import urllib.error
-import urllib.parse
+import tarfile
 import urllib.request
+import urllib.error
 from datetime import datetime
-
+from pathlib import Path
+from typing import Dict, Optional, Tuple, Union
+import hashlib
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-
-from sigdiscover.utils.io import ensure_dir
 from sigdiscover.utils.logging import logger
-
+from sigdiscover.utils.io import ensure_dir
 
 class DownloadProgressBar(tqdm):
     def update_to(self, b=1, bsize=1, tsize=None):
@@ -23,29 +21,9 @@ class DownloadProgressBar(tqdm):
             self.total = tsize
         self.update(b * bsize - self.n)
 
-def download_url(url: str, output_path: str, timeout: int = 30) -> None:
-    max_retries = 2
-    for attempt in range(max_retries):
-        try:
-            with DownloadProgressBar(unit='B', unit_scale=True, miniters=1, desc=url.split('/')[-1]) as t:
-                # urlretrieve doesn't support timeout directly, we use urlopen
-                response = urllib.request.urlopen(url, timeout=timeout)
-                total_size = int(response.headers.get('content-length', 0))
-                if total_size > 0:
-                    t.total = total_size
-                block_size = 8192
-                with open(output_path, 'wb') as f:
-                    while True:
-                        buffer = response.read(block_size)
-                        if not buffer:
-                            break
-                        f.write(buffer)
-                        t.update(len(buffer))
-                return
-        except Exception:
-            if attempt == max_retries - 1:
-                raise
-            time.sleep(2 ** attempt) # Backoff
+def download_url(url: str, output_path: str) -> None:
+    with DownloadProgressBar(unit='B', unit_scale=True, miniters=1, desc=url.split('/')[-1]) as t:
+        urllib.request.urlretrieve(url, filename=output_path, reporthook=t.update_to)
 
 def calculate_sha256(filepath: str) -> str:
     sha256_hash = hashlib.sha256()
@@ -54,7 +32,7 @@ def calculate_sha256(filepath: str) -> str:
             sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
 
-def _parse_cosmic_tsv(filepath: str) -> tuple[np.ndarray, list]:
+def _parse_cosmic_tsv(filepath: str) -> Tuple[np.ndarray, list]:
     df = pd.read_csv(filepath, sep='\t')
     if 'Type' in df.columns and 'SubType' in df.columns:
         sig_cols = [c for c in df.columns if c.startswith(('SBS', 'DBS', 'ID'))]
@@ -70,54 +48,51 @@ def _parse_cosmic_tsv(filepath: str) -> tuple[np.ndarray, list]:
 def download_cosmic_signatures(version: str = "3.4", output_dir: str = "data/cosmic") -> None:
     ensure_dir(output_dir)
     logger.info(f"Downloading COSMIC signatures version {version} to {output_dir}")
-
-    doc_ids = {"SBS96": "2123", "DBS78": "2125", "ID83": "2126"} # Correct docs for v3.4 GRCh37
-    files = {
-        "SBS96": f"COSMIC_v{version}_SBS_GRCh37.txt",
-        "DBS78": f"COSMIC_v{version}_DBS_GRCh37.txt",
-        "ID83": f"COSMIC_v{version}_ID_GRCh37.txt"
-    }
-
-    fallback_files = {
-        "SBS96": f"https://raw.githubusercontent.com/AlexandrovLab/SigProfilerReferenceDatabase/master/SigProfilerReferenceDatabase/src/COSMIC_v{version}_SBS_GRCh37.txt",
-        "DBS78": f"https://raw.githubusercontent.com/AlexandrovLab/SigProfilerReferenceDatabase/master/SigProfilerReferenceDatabase/src/COSMIC_v{version}_DBS_GRCh37.txt",
-        "ID83": f"https://raw.githubusercontent.com/AlexandrovLab/SigProfilerReferenceDatabase/master/SigProfilerReferenceDatabase/src/COSMIC_v{version}_ID_GRCh37.txt"
-    }
-
-    manifest: dict = {"version": version, "download_date": datetime.now().isoformat(), "files": {}}
-
+    base_url_sanger = "https://cancer.sanger.ac.uk/signatures/downloads/"
+    if str(version) == "3.4":
+        files = {
+            "SBS96": "COSMIC_v3.4_SBS_GRCh37.txt",
+            "DBS78": "COSMIC_v3.4_DBS_GRCh37.txt",
+            "ID83": "COSMIC_v3.4_ID_GRCh37.txt"
+        }
+        fallback_files = {
+            "SBS96": "https://raw.githubusercontent.com/Rozen-Lab/cosmicsig/master/data-raw/COSMIC_v3.4_SBS_GRCh37.txt",
+            "DBS78": "https://raw.githubusercontent.com/Rozen-Lab/cosmicsig/master/data-raw/COSMIC_v3.4_DBS_GRCh37.txt",
+            "ID83": "https://raw.githubusercontent.com/Rozen-Lab/cosmicsig/master/data-raw/COSMIC_v3.4_ID_GRCh37.txt"
+        }
+    else:
+        files = {
+            "SBS96": f"COSMIC_v{version}_SBS_GRCh37.txt",
+            "DBS78": f"COSMIC_v{version}_DBS_GRCh37.txt",
+            "ID83": f"COSMIC_v{version}_ID_GRCh37.txt"
+        }
+        fallback_files = {
+            "SBS96": f"https://raw.githubusercontent.com/Rozen-Lab/cosmicsig/master/data-raw/COSMIC_v{version}_SBS_GRCh37.txt",
+            "DBS78": f"https://raw.githubusercontent.com/Rozen-Lab/cosmicsig/master/data-raw/COSMIC_v{version}_DBS_GRCh37.txt",
+            "ID83": f"https://raw.githubusercontent.com/Rozen-Lab/cosmicsig/master/data-raw/COSMIC_v{version}_ID_GRCh37.txt"
+        }
+    manifest = {"version": version, "download_date": datetime.now().isoformat(), "files": {}}
     for sig_type, filename in files.items():
-        doc_id = doc_ids.get(sig_type, "2123")
-        url = f"https://cancer.sanger.ac.uk/signatures/documents/{doc_id}/{filename}"
+        url = base_url_sanger + filename
         output_file = os.path.join(output_dir, filename)
-
-        success = False
         try:
             download_url(url, output_file)
-            success = True
-        except Exception:
+        except Exception as e:
             fallback_url = fallback_files[sig_type]
             try:
                 download_url(fallback_url, output_file)
-                success = True
             except Exception as e2:
-                logger.error(f"Failed to download {sig_type} from all sources: {e2}")
-                manifest["files"][sig_type] = {"status": "failed", "error": str(e2)}
-                raise RuntimeError(f"Failed to download {sig_type} signatures from all sources.") from e2
-
-        if success:
-            try:
-                signatures, sig_names = _parse_cosmic_tsv(output_file)
-                npz_file = os.path.join(output_dir, f"{sig_type}.npz")
-                np.savez(npz_file, signatures=signatures, names=sig_names)
-                manifest["files"][sig_type] = {
-                    "status": "success", "source_file": filename, "npz_file": f"{sig_type}.npz", "sha256": calculate_sha256(output_file), "shape": list(signatures.shape)
-                }
-            except Exception as e:
-                logger.error(f"Failed to parse {filename}: {e}")
-                manifest["files"][sig_type] = {"status": "failed_parse", "error": str(e)}
-                raise RuntimeError(f"Failed to parse {filename}: {e}") from e
-
+                logger.error(f"Fallback download failed for {sig_type}: {e2}")
+                continue
+        try:
+            signatures, sig_names = _parse_cosmic_tsv(output_file)
+            npz_file = os.path.join(output_dir, f"{sig_type}.npz")
+            np.savez(npz_file, signatures=signatures, names=sig_names)
+            manifest["files"][sig_type] = {
+                "source_file": filename, "npz_file": f"{sig_type}.npz", "sha256": calculate_sha256(output_file), "shape": signatures.shape
+            }
+        except Exception as e:
+            logger.error(f"Failed to parse {filename}: {e}")
     with open(os.path.join(output_dir, "manifest.json"), "w") as f:
         json.dump(manifest, f, indent=2)
 
@@ -136,25 +111,17 @@ def download_tcga_mutations(project: str = "TCGA-BRCA", output_dir: str = "data/
     }
     params = {"filters": json.dumps(filters), "fields": "file_id,file_name", "format": "JSON", "size": "1"}
     url = files_endpt + "?" + urllib.parse.urlencode(params)
-    try:
-        response = urllib.request.urlopen(url, timeout=30)
-    except Exception as e:
-        raise RuntimeError(f"Failed to fetch TCGA manifest for {project}: {e}") from e
-
+    response = urllib.request.urlopen(url)
     data = json.loads(response.read().decode("utf-8"))
-    if "data" not in data or "hits" not in data["data"] or len(data["data"]["hits"]) == 0:
-        raise RuntimeError(f"No GDC files matched project {project}")
-
     file_info = data["data"]["hits"][0]
     file_id = file_info["file_id"]
     file_name = file_info["file_name"]
-    download_url_link = f"https://api.gdc.cancer.gov/data/{file_id}"
+    download_url = f"https://api.gdc.cancer.gov/data/{file_id}"
     gz_output_path = os.path.join(output_dir, file_name)
     maf_output_path = os.path.join(output_dir, f"{project}.maf")
-
-    download_url(download_url_link, gz_output_path, timeout=60)
-
-    with gzip.open(gz_output_path, 'rb') as f_in, open(maf_output_path, 'wb') as f_out:
-        shutil.copyfileobj(f_in, f_out)
+    urllib.request.urlretrieve(download_url, gz_output_path)
+    with gzip.open(gz_output_path, 'rb') as f_in:
+        with open(maf_output_path, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
     df = pd.read_csv(maf_output_path, sep='\t', comment='#', low_memory=False)
     return df

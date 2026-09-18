@@ -1,9 +1,8 @@
+import pytest
 import numpy as np
-
 from sigdiscover.extraction.nmf import nmf_mutational_signatures
 from sigdiscover.extraction.rank_selection import select_optimal_rank
 from sigdiscover.extraction.stability import compute_signature_stability
-
 
 def test_nmf_mutational_signatures():
     np.random.seed(42)
@@ -14,10 +13,7 @@ def test_nmf_mutational_signatures():
     S, A, error = nmf_mutational_signatures(M, n_signatures=K, seed=42)
     assert S.shape == (3, 96)
     assert A.shape == (10, 3)
-
-    # Assert relative error instead of absolute
-    rel_error = error / np.linalg.norm(M, 'fro')
-    assert rel_error < 0.05
+    assert error < 0.1
 
 def test_rank_selection():
     np.random.seed(42)

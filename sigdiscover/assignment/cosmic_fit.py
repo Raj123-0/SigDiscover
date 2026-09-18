@@ -1,14 +1,12 @@
 import os
-
 import numpy as np
 import pandas as pd
+from typing import Tuple
 from scipy.optimize import nnls
-
-from sigdiscover.data.loaders import load_cosmic_signatures
 from sigdiscover.utils.logging import logger
+from sigdiscover.data.loaders import load_cosmic_signatures
 
-
-def cosmic_fit_with_sigprofiler(matrix_path: str, output_dir: str, cosmic_version: float = 3.4, genome_build: str = "GRCh37") -> tuple[pd.DataFrame, np.ndarray, pd.DataFrame]:
+def cosmic_fit_with_sigprofiler(matrix_path: str, output_dir: str, cosmic_version: float = 3.4, genome_build: str = "GRCh37") -> Tuple[pd.DataFrame, np.ndarray, pd.DataFrame]:
     '''Fit samples to COSMIC signatures using SigProfilerAssignment.
 
     Args:
