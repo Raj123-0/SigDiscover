@@ -1,0 +1,30 @@
+project:
+  name: "SigDiscover Run"
+  seed: 42
+
+data:
+  cosmic_version: 3.4
+  genome_build: "GRCh37"
+  mutation_types: ["SBS96", "DBS78", "ID83"]
+
+extraction:
+  min_signatures: 1
+  max_signatures: 10
+  n_replicates: 100
+  n_iterations: 1000000
+  tolerance: 1.0e-15
+  init_method: "random"
+
+assignment:
+  cosine_threshold: 0.8
+  use_sigprofiler: true
+
+benchmark:
+  synthetic_n_samples: 100
+  synthetic_n_mutations: 5000
+  synthetic_n_replicates: 10
+  noise_levels: [0.1, 0.2, 0.3]
+
+visualization:
+  dpi: 300
+  format: "png"
