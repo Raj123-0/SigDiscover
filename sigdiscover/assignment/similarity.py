@@ -1,8 +1,9 @@
+
 import numpy as np
 import pandas as pd
-from typing import List
 
-def assign_to_cosmic(discovered_signatures: np.ndarray, cosmic_signatures: np.ndarray, cosmic_names: List[str], threshold: float = 0.8) -> pd.DataFrame:
+
+def assign_to_cosmic(discovered_signatures: np.ndarray, cosmic_signatures: np.ndarray, cosmic_names: list[str], threshold: float = 0.8) -> pd.DataFrame:
     disc_norm = np.linalg.norm(discovered_signatures, axis=1, keepdims=True)
     cosm_norm = np.linalg.norm(cosmic_signatures, axis=1, keepdims=True)
     disc_norm[disc_norm == 0] = 1e-16
