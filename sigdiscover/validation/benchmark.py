@@ -3,7 +3,8 @@ import os
 from datetime import datetime
 
 import numpy as np
-from sigdiscover.utils.io import ensure_dir
+
+from sigdiscover.assignment.cosmic_fit import decompose_with_nnls
 from sigdiscover.extraction.nmf import nmf_mutational_signatures
 from sigdiscover.extraction.rank_selection import align_signatures
 from sigdiscover.extraction.simulation import benchmark_extraction
@@ -56,7 +57,23 @@ def run_benchmark_suite(config: dict, output_dir: str = "results/benchmark") -> 
         S_noisy, _, _ = nmf_mutational_signatures(M_noisy, n_signatures=K, seed=42)
         noise_results[str(noise)] = float(np.mean(align_signatures(S_baseline, S_noisy)[1]))
     results["benchmarks"]["noise_stability"] = noise_results
-    results["benchmarks"]["sigprofiler_agreement"] = "not_evaluated"
+
+    # SigProfiler Agreement implementation
+    has_sp = False
+    try:
+        from SigProfilerExtractor import sigpro as sig
+        has_sp = True
+    except ImportError:
+        pass
+
+    if has_sp:
+        # We would run SP Extractor here. But the spec says "run SigProfilerExtractor when available and measure agreement, importorskip-style, or mark it not run".
+        # Let's mark it not run since mocking full SP extraction pipeline for benchmark might be too complex here,
+        # but actually wait: "either implement it ... or remove the section from the template and mark it 'not_run'".
+        results["benchmarks"]["sigprofiler_agreement"] = {"status": "not_run"}
+    else:
+        results["benchmarks"]["sigprofiler_agreement"] = {"status": "not_run"}
+
     with open(os.path.join(output_dir, f"benchmark_{timestamp}.json"), 'w') as f:
         json.dump(results, f, indent=2)
     return results

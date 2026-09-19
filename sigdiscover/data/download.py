@@ -94,25 +94,30 @@ def download_cosmic_signatures(version: str = "3.4", output_dir: str = "data/cos
         success = False
         try:
             download_url(url, output_file)
-        except Exception as e:
-            logger.warning(f"Primary download failed for {sig_type}: {e}. Trying fallback.")
+            success = True
+        except Exception:
             fallback_url = fallback_files[sig_type]
             try:
                 download_url(fallback_url, output_file)
                 success = True
             except Exception as e2:
-                logger.error(f"Fallback download failed for {sig_type}: {e2}")
-                raise RuntimeError(f"Failed to download COSMIC signature {sig_type} from both primary and fallback URLs.")
-        try:
-            signatures, sig_names = _parse_cosmic_tsv(output_file)
-            npz_file = os.path.join(output_dir, f"{sig_type}.npz")
-            np.savez(npz_file, signatures=signatures, names=sig_names)
-            manifest["files"][sig_type] = {
-                "source_file": filename, "npz_file": f"{sig_type}.npz", "sha256": calculate_sha256(output_file), "shape": signatures.shape
-            }
-        except Exception as e:
-            logger.error(f"Failed to parse {filename}: {e}")
-            raise RuntimeError(f"Failed to parse downloaded signature file {filename}: {e}")
+                logger.error(f"Failed to download {sig_type} from all sources: {e2}")
+                manifest["files"][sig_type] = {"status": "failed", "error": str(e2)}
+                raise RuntimeError(f"Failed to download {sig_type} signatures from all sources.") from e2
+
+        if success:
+            try:
+                signatures, sig_names = _parse_cosmic_tsv(output_file)
+                npz_file = os.path.join(output_dir, f"{sig_type}.npz")
+                np.savez(npz_file, signatures=signatures, names=sig_names)
+                manifest["files"][sig_type] = {
+                    "status": "success", "source_file": filename, "npz_file": f"{sig_type}.npz", "sha256": calculate_sha256(output_file), "shape": list(signatures.shape)
+                }
+            except Exception as e:
+                logger.error(f"Failed to parse {filename}: {e}")
+                manifest["files"][sig_type] = {"status": "failed_parse", "error": str(e)}
+                raise RuntimeError(f"Failed to parse {filename}: {e}") from e
+
     with open(os.path.join(output_dir, "manifest.json"), "w") as f:
         json.dump(manifest, f, indent=2)
 
