@@ -1,10 +1,7 @@
 import os
-
 import click
 import numpy as np
-import pandas as pd
-
-from sigdiscover.assignment.similarity import assign_to_cosmic
+from sigdiscover.utils.io import ensure_dir, save_matrix, load_matrix
 from sigdiscover.config import Config
 from sigdiscover.data.download import download_cosmic_signatures, download_tcga_mutations
 from sigdiscover.data.loaders import load_cosmic_signatures, load_maf
@@ -25,9 +22,7 @@ from sigdiscover.utils.logging import logger
 from sigdiscover.validation.benchmark import run_benchmark_suite
 from sigdiscover.validation.report import generate_validation_report
 from sigdiscover.visualization.activity_plots import plot_activity_barplot, plot_activity_heatmap
-from sigdiscover.visualization.comparative import plot_cosine_heatmap, plot_rank_selection
-from sigdiscover.visualization.signature_plots import plot_signature_profile
-
+from sigdiscover.visualization.comparative import plot_rank_selection
 
 @click.group()
 def cli(): pass
@@ -133,7 +128,8 @@ def run(maf, synthetic, output, config_file, skip_assignment):
     plot_rank_selection(res['all_k_results'], os.path.join(output, "rank_selection.png"))
     plot_activity_heatmap(pd.DataFrame(A, index=M_df.index), os.path.join(output, "activity_heatmap.png"))
     plot_activity_barplot(pd.DataFrame(A, index=M_df.index), save_path=os.path.join(output, "activity_barplot.png"))
-    for i in range(res['optimal_k']): plot_signature_profile(S[i], title=f"Signature {i+1}", save_path=os.path.join(output, f"sig_{i+1}.png"))
+    for i in range(res['optimal_k']):
+        plot_signature_profile(S[i], title=f"Signature {i+1}", save_path=os.path.join(output, f"sig_{i+1}.png"))
 
     if not skip_assignment:
         try:
