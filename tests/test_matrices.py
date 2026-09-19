@@ -1,4 +1,3 @@
-import pytest
 import pandas as pd
 import numpy as np
 from sigdiscover.matrices.sbs import build_sbs96_matrix
@@ -14,12 +13,16 @@ def test_sbs96_matrix_construction(mock_spmg, mock_install, mini_maf_path):
         import os
         out_dir = os.path.join(input_dir, "output", "SBS")
         os.makedirs(out_dir)
+
+        cols = ['S1', 'S2']
         with open(os.path.join(out_dir, f"{project}.SBS96.all"), 'w') as f:
-            f.write("MutationType\tS1\tS2\n")
-            f.write("A[C>A]A\t1\t2\n")
+            f.write("MutationType\t" + "\t".join(cols) + "\n")
+            for i in range(96):
+                f.write(f"Mut{i}\t1\t1\n")
+
     mock_spmg.side_effect = mock_spmg_func
     matrix = build_sbs96_matrix(df)
-    assert matrix.shape[1] == 96 or matrix.shape[1] == 0 or matrix.shape[0] > 0
+    assert matrix.shape[1] == 96
     assert np.all(matrix.values >= 0)
 
 
@@ -30,13 +33,18 @@ def test_dbs78_matrix_shape(mock_spmg, mini_maf_path):
         import os
         out_dir = os.path.join(input_dir, "output", "DBS")
         os.makedirs(out_dir)
+
+        # Write exactly 78 channels for DBS
+        cols = ['S1', 'S2']
         with open(os.path.join(out_dir, f"{project}.DBS78.all"), 'w') as f:
-            f.write("MutationType\tS1\tS2\n")
-            f.write("AC>NN\t1\t2\n")
+            f.write("MutationType\t" + "\t".join(cols) + "\n")
+            for i in range(78):
+                f.write(f"Mut{i}\t1\t1\n")
+
     mock_spmg.side_effect = mock_spmg_func
     matrix = build_dbs78_matrix(df)
-    if len(matrix.columns) > 0:
-        assert matrix.shape[1] == 78 or matrix.shape[1] > 0
+    assert matrix.shape[1] == 78
+    assert np.all(matrix.values >= 0)
 
 
 @patch('SigProfilerMatrixGenerator.scripts.SigProfilerMatrixGeneratorFunc.SigProfilerMatrixGeneratorFunc')
@@ -46,10 +54,38 @@ def test_id83_matrix_shape(mock_spmg, mini_maf_path):
         import os
         out_dir = os.path.join(input_dir, "output", "ID")
         os.makedirs(out_dir)
+
+        # Write exactly 83 channels for ID
+        cols = ['S1', 'S2']
         with open(os.path.join(out_dir, f"{project}.ID83.all"), 'w') as f:
-            f.write("MutationType\tS1\tS2\n")
-            f.write("1:Del:C:1\t1\t2\n")
+            f.write("MutationType\t" + "\t".join(cols) + "\n")
+            for i in range(83):
+                f.write(f"Mut{i}\t1\t1\n")
+
     mock_spmg.side_effect = mock_spmg_func
     matrix = build_id83_matrix(df)
-    if len(matrix.columns) > 0:
-        assert matrix.shape[1] == 83 or matrix.shape[1] > 0
+    assert matrix.shape[1] == 83
+    assert np.all(matrix.values >= 0)
+
+def test_sbs96_known_biological_fixture():
+    df = pd.DataFrame({
+        'Tumor_Sample_Barcode': ['S1', 'S1'],
+        'Chromosome': ['chr1', 'chr1'],
+        'Start_Position': [100, 200],
+        'End_Position': [100, 200],
+        'Reference_Allele': ['C', 'T'],
+        'Tumor_Seq_Allele2': ['A', 'G']
+    })
+
+    with patch('sigdiscover.matrices.sbs.os.path.exists', return_value=True):
+        with patch('pysam.FastaFile') as mock_fasta:
+            mock_fasta_instance = mock_fasta.return_value
+            # Fetch for first mut (C>A), need context 'A' before and 'T' after -> "ACT"
+            # Fetch for second mut (T>G), need context 'G' before and 'C' after -> "GTC"
+            mock_fasta_instance.fetch.side_effect = ["ACT", "GTC"]
+
+            matrix = build_sbs96_matrix(df, genome="mock")
+
+            assert matrix.shape[1] == 96
+            assert matrix.loc['S1', 'A[C>A]T'] == 1
+            assert matrix.loc['S1', 'G[T>G]C'] == 1

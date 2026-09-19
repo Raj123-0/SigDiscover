@@ -1,4 +1,3 @@
-import json
 import os
 from jinja2 import Template
 from sigdiscover.utils.io import ensure_dir

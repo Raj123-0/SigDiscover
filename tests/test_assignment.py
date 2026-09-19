@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 from sigdiscover.assignment.similarity import assign_to_cosmic
 
@@ -14,5 +13,5 @@ def test_assign_to_cosmic():
     assert assignments.iloc[0]['best_cosmic_match'] == 'SBS1'
     assert assignments.iloc[0]['cosine_similarity'] > 0.99
     assert assignments.iloc[1]['best_cosmic_match'] == 'SBS2'
-    assert assignments.iloc[2]['is_novel'] == True
+    assert assignments.iloc[2]['is_novel']
     assert 'Novel' in assignments.iloc[2]['best_cosmic_match']

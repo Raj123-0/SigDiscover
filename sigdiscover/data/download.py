@@ -78,12 +78,13 @@ def download_cosmic_signatures(version: str = "3.4", output_dir: str = "data/cos
         try:
             download_url(url, output_file)
         except Exception as e:
+            logger.warning(f"Primary download failed for {sig_type}: {e}. Trying fallback.")
             fallback_url = fallback_files[sig_type]
             try:
                 download_url(fallback_url, output_file)
             except Exception as e2:
                 logger.error(f"Fallback download failed for {sig_type}: {e2}")
-                continue
+                raise RuntimeError(f"Failed to download COSMIC signature {sig_type} from both primary and fallback URLs.")
         try:
             signatures, sig_names = _parse_cosmic_tsv(output_file)
             npz_file = os.path.join(output_dir, f"{sig_type}.npz")
@@ -93,6 +94,7 @@ def download_cosmic_signatures(version: str = "3.4", output_dir: str = "data/cos
             }
         except Exception as e:
             logger.error(f"Failed to parse {filename}: {e}")
+            raise RuntimeError(f"Failed to parse downloaded signature file {filename}: {e}")
     with open(os.path.join(output_dir, "manifest.json"), "w") as f:
         json.dump(manifest, f, indent=2)
 

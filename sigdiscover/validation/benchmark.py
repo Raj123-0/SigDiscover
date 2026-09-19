@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from typing import Dict
 import numpy as np
-import pandas as pd
 from sigdiscover.utils.io import ensure_dir
 from sigdiscover.extraction.nmf import nmf_mutational_signatures
 from sigdiscover.extraction.rank_selection import align_signatures
@@ -40,7 +39,7 @@ def run_benchmark_suite(config: Dict, output_dir: str = "results/benchmark") -> 
         S_noisy, _, _ = nmf_mutational_signatures(M_noisy, n_signatures=K, seed=42)
         noise_results[str(noise)] = float(np.mean(align_signatures(S_baseline, S_noisy)[1]))
     results["benchmarks"]["noise_stability"] = noise_results
-    results["benchmarks"]["sigprofiler_agreement"] = 0.0
+    results["benchmarks"]["sigprofiler_agreement"] = "not_evaluated"
     with open(os.path.join(output_dir, f"benchmark_{timestamp}.json"), 'w') as f:
         json.dump(results, f, indent=2)
     return results
