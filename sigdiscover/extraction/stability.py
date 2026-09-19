@@ -1,12 +1,12 @@
-import numpy as np
-from typing import List, Tuple
-from sigdiscover.extraction.rank_selection import align_signatures, cosine_similarity_matrix
 
-def compute_signature_stability(S_list: List[np.ndarray]) -> Tuple[np.ndarray, float]:
-    if not S_list:
-        raise ValueError("S_list cannot be empty")
-    if len(S_list) == 1:
-        return S_list[0], 1.0
+import numpy as np
+
+
+def compute_signature_stability(S_list: list[np.ndarray]) -> tuple[np.ndarray, float]:
+    from sigdiscover.extraction.rank_selection import align_signatures, cosine_similarity_matrix
+
+    if not S_list: raise ValueError("S_list cannot be empty")
+    if len(S_list) == 1: return S_list[0], 1.0
     ref_S = S_list[0]
     aligned_signatures = [ref_S]
     for S in S_list[1:]:
