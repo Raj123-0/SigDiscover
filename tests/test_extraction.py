@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 from sigdiscover.extraction.nmf import nmf_mutational_signatures
 from sigdiscover.extraction.rank_selection import select_optimal_rank

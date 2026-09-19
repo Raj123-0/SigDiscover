@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Tuple
 from scipy.stats import pearsonr
 from sigdiscover.extraction.nmf import nmf_mutational_signatures
 from sigdiscover.extraction.rank_selection import align_signatures, cosine_similarity_matrix
