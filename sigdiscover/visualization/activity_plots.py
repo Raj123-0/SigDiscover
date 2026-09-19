@@ -1,11 +1,13 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-from typing import Optional
 import os
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
 from sigdiscover.utils.io import ensure_dir
 
-def plot_activity_heatmap(activities: pd.DataFrame, save_path: Optional[str] = None) -> plt.Figure:
+
+def plot_activity_heatmap(activities: pd.DataFrame, save_path: str | None = None) -> plt.Figure:
     fig, ax = plt.subplots(figsize=(10, 8))
     sns.heatmap(activities, cmap='YlOrRd', ax=ax, xticklabels=True, yticklabels=False)
     ax.set_title("Signature Activities Across Samples"); ax.set_ylabel("Samples"); ax.set_xlabel("Signatures")
@@ -14,7 +16,7 @@ def plot_activity_heatmap(activities: pd.DataFrame, save_path: Optional[str] = N
         ensure_dir(os.path.dirname(save_path)); fig.savefig(save_path, dpi=300, bbox_inches='tight'); plt.close(fig)
     return fig
 
-def plot_activity_barplot(activities: pd.DataFrame, top_n: int = 10, save_path: Optional[str] = None) -> plt.Figure:
+def plot_activity_barplot(activities: pd.DataFrame, top_n: int = 10, save_path: str | None = None) -> plt.Figure:
     fig, ax = plt.subplots(figsize=(12, 6))
     df = activities.copy()
     df['total'] = df.sum(axis=1)

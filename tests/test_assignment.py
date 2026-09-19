@@ -1,6 +1,7 @@
-import pytest
 import numpy as np
+
 from sigdiscover.assignment.similarity import assign_to_cosmic
+
 
 def test_assign_to_cosmic():
     np.random.seed(42)

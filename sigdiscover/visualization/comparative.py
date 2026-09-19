@@ -1,12 +1,14 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-import numpy as np
-from typing import List, Optional
 import os
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+
 from sigdiscover.utils.io import ensure_dir
 
-def plot_cosine_heatmap(discovered: np.ndarray, cosmic: np.ndarray, cosmic_names: List[str], save_path: Optional[str] = None) -> plt.Figure:
+
+def plot_cosine_heatmap(discovered: np.ndarray, cosmic: np.ndarray, cosmic_names: list[str], save_path: str | None = None) -> plt.Figure:
     disc_norm = np.linalg.norm(discovered, axis=1, keepdims=True)
     cosm_norm = np.linalg.norm(cosmic, axis=1, keepdims=True)
     disc_norm[disc_norm == 0], cosm_norm[cosm_norm == 0] = 1e-16, 1e-16
@@ -21,7 +23,7 @@ def plot_cosine_heatmap(discovered: np.ndarray, cosmic: np.ndarray, cosmic_names
         ensure_dir(os.path.dirname(save_path)); fig.savefig(save_path, dpi=300, bbox_inches='tight'); plt.close(fig)
     return fig
 
-def plot_rank_selection(rank_results: pd.DataFrame, save_path: Optional[str] = None) -> plt.Figure:
+def plot_rank_selection(rank_results: pd.DataFrame, save_path: str | None = None) -> plt.Figure:
     fig, ax1 = plt.subplots(figsize=(10, 6))
     k_vals, stability, recon_err = rank_results['k'].values, rank_results['stability'].values, rank_results['reconstruction_error'].values
     ax1.set_xlabel('Rank (k)'); ax1.set_ylabel('Stability', color='tab:blue'); ax1.plot(k_vals, stability, marker='o', color='tab:blue', linewidth=2)
